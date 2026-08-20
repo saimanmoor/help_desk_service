@@ -431,3 +431,116 @@ def get_tickets_for_send_max():
     except (Exception, psycopg2.Error):
         logger.exception('Failed to get MAX tickets for sending')
         return []
+
+
+def add_ticket_message(ticketId, senderType, messageText, senderName=None, maxMessageId=None, telegramChatid=None):
+    """Add a message to the ticket conversation.
+
+    Args:
+        ticketId (int): id of the ticket
+        senderType (str): 'user' or 'support'
+        messageText (str): text of the message
+        senderName (str, optional): name of the sender
+        maxMessageId (str, optional): message id from MAX messenger
+        telegramChatid (str, optional): chat id for Telegram
+
+    Returns:
+        tuple|list: (message_id,) or [] on error
+    """
+    queryInsert = (
+        'INSERT INTO ticket_messages '
+        '(ticket_id, sender_type, sender_name, message_text, max_message_id, telegram_chatid, date_insert) '
+        'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id'
+    )
+    dateNow = datetime.now()
+
+    try:
+        with db_cursor() as cur:
+            cur.execute(queryInsert, (ticketId, senderType, senderName, messageText, maxMessageId, telegramChatid, dateNow))
+            return cur.fetchone()
+    except (Exception, psycopg2.Error):
+        logger.exception('Failed to add ticket message')
+        return []
+
+
+def get_ticket_messages(ticketId):
+    """Get all messages for a ticket ordered by date_insert.
+
+    Args:
+        ticketId (int): id of the ticket
+
+    Returns:
+        list[tuple]: [(id, sender_type, sender_name, message_text, date_insert), ...] or [] on error
+    """
+    queryGet = (
+        'SELECT id, sender_type, sender_name, message_text, date_insert '
+        'FROM ticket_messages '
+        'WHERE ticket_id = %s '
+        'ORDER BY date_insert ASC'
+    )
+
+    try:
+        with db_cursor() as cur:
+            cur.execute(queryGet, (ticketId,))
+            return cur.fetchall()
+    except (Exception, psycopg2.Error):
+        logger.exception('Failed to get ticket messages')
+        return []
+
+
+def mark_message_sent(messageId):
+    """Mark a ticket message as sent.
+
+    Args:
+        messageId (int): id of the message
+    """
+    queryUpdate = 'UPDATE ticket_messages SET is_sent = true WHERE id = %s'
+
+    try:
+        with db_cursor() as cur:
+            cur.execute(queryUpdate, (messageId,))
+    except (Exception, psycopg2.Error):
+        logger.exception('Failed to mark message %s as sent', messageId)
+
+
+def get_unsent_messages_for_max():
+    """Get unsent messages for MAX messenger.
+
+    Returns:
+        list[tuple]: [(id, ticket_id, telegram_chatid, message_text, max_message_id, sender_type), ...] or [] on error
+    """
+    queryGet = (
+        'SELECT m.id, m.ticket_id, t.telegram_chatid, m.message_text, m.max_message_id, m.sender_type '
+        'FROM ticket_messages m '
+        'JOIN tickets t ON m.ticket_id = t.id '
+        'WHERE m.is_sent = false AND m.telegram_chatid IS NULL AND m.max_message_id IS NOT NULL'
+    )
+
+    try:
+        with db_cursor() as cur:
+            cur.execute(queryGet)
+            return cur.fetchall()
+    except (Exception, psycopg2.Error):
+        logger.exception('Failed to get unsent messages for MAX')
+        return []
+
+
+def get_original_message_for_ticket(ticketId):
+    """Get the original user message (max_message_id) for a ticket to use as reply reference.
+
+    Args:
+        ticketId (int): id of the ticket
+
+    Returns:
+        str|None: max_message_id or None if not found
+    """
+    queryGet = 'SELECT max_message_id FROM tickets WHERE id = %s'
+
+    try:
+        with db_cursor() as cur:
+            cur.execute(queryGet, (ticketId,))
+            result = cur.fetchone()
+            return result[0] if result else None
+    except (Exception, psycopg2.Error):
+        logger.exception('Failed to get original message for ticket %s', ticketId)
+        return None

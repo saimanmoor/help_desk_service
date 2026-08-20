@@ -68,3 +68,15 @@ CREATE TABLE IF NOT EXISTS voices (
     date_insert timestamp NOT NULL,
     date_update timestamp NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS ticket_messages (
+    id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ticket_id       bigint    NOT NULL REFERENCES tickets (id) ON DELETE CASCADE,
+    sender_type     varchar   NOT NULL, -- 'user' или 'support'
+    sender_name     varchar,
+    message_text    varchar   NOT NULL,
+    max_message_id  varchar,
+    telegram_chatid varchar,
+    is_sent         boolean   NOT NULL DEFAULT false,
+    date_insert     timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

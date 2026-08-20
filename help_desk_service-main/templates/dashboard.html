@@ -3,55 +3,173 @@
 
 {% block content %}
 
-<h2>Список заявок</h2>
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+    }
+    .filter-card {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .ticket-card {
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        border-radius: 15px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .ticket-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .ticket-card .card-header {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 15px 15px 0 0 !important;
+        padding: 15px 20px;
+        font-weight: bold;
+    }
+    .ticket-card .card-header a {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 1.1em;
+    }
+    .ticket-card .card-header a:hover {
+        text-decoration: underline;
+    }
+    .status-badge {
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: bold;
+    }
+    .status-badge.in-work {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+    }
+    .status-badge.closed {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    .status-badge.new {
+        background: #ffc107;
+        color: #000;
+    }
+    .btn-apply {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 10px 25px;
+        border-radius: 25px;
+        color: white;
+        font-weight: bold;
+    }
+    .btn-apply:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    .form-control-custom {
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        padding: 10px;
+    }
+    .label-custom {
+        font-weight: 600;
+        color: #555;
+        margin-right: 10px;
+    }
+</style>
 
-<div class="form-goup">
-<form action="/dashboard" class='form-inline' method="POST">
-
-  <label class='form-check-label' for="types_ticket">Категория заявки:</label>
-    <select class="form-control" name='types_ticket' id="types_ticket">
-        <option value="None"></option>
-        {% for type in types_ticket %}
-          {% if type[0] == selected_val %}
-            <option value="{{ type[0] }}" selected>{{ type[0] }}</option>
-          {% else %}
-             <option value="{{ type[0] }}">{{ type[0] }}</option>
-          {% endif %}
-        {% endfor %}
-    </select>
-    
-    <label for="start_date" class='form-check-label'>Дата с:</label>
-    <input style="width: 130px;" class="form-control datepicker" name="start_date">
-    <label for="end_date" class='form-check-label'>По:</label>
-    <input style="width: 130px;" class="form-control datepicker" name="end_date">
-    
-  <div class="form-check mb-2 mr-sm-2">
-  <input type="checkbox" class="form-check-input" name="done_tickets" {{ session.get('done_tickets') }} >
-  <label for="is_done" class='form-check-label'>Все (включая закрытые)</label>
-   </div>
-  <button type="submit" class="btn btn-primary">Применить</button>
-</form>
+<div class="dashboard-header">
+    <h2 class="mb-1">📋 Список заявок</h2>
+    <p class="mb-0 opacity-75">Управление и мониторинг обращений пользователей</p>
 </div>
-<p></p>
 
- {% for ticket in tickets %}
-  <div class="card">
-    <div class="card-header">
-    <a href='/ticketditails/{{ ticket[0] }}'>Заявка № {{ ticket[0] }} </a>
-    дата создания: {{ ticket[13].strftime('%d.%m.%Y %H:%M') }}
-    
-    {% if ticket[9] %}
-    <button type="button" class="btn btn-primary position-relative">В работе</button>
-    {% endif %}
+<div class="filter-card">
+    <form action="/dashboard" class="row align-items-end" method="POST">
+        <div class="col-md-3 mb-3">
+            <label class="label-custom" for="types_ticket">Категория:</label>
+            <select class="form-control form-control-custom" name="types_ticket" id="types_ticket">
+                <option value="None"></option>
+                {% for type in types_ticket %}
+                    {% if type[0] == selected_val %}
+                        <option value="{{ type[0] }}" selected>{{ type[0] }}</option>
+                    {% else %}
+                        <option value="{{ type[0] }}">{{ type[0] }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="col-md-2 mb-3">
+            <label class="label-custom" for="start_date">Дата с:</label>
+            <input class="form-control form-control-custom datepicker" name="start_date" placeholder="дд.мм.yyyy">
+        </div>
+        
+        <div class="col-md-2 mb-3">
+            <label class="label-custom" for="end_date">По:</label>
+            <input class="form-control form-control-custom datepicker" name="end_date" placeholder="дд.мм.yyyy">
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" name="done_tickets" id="done_tickets" {{ session.get('done_tickets') }}>
+                <label class="form-check-label" for="done_tickets">Включая закрытые</label>
+            </div>
+        </div>
+        
+        <div class="col-md-2 mb-3">
+            <button type="submit" class="btn btn-apply w-100">🔍 Применить</button>
+        </div>
+    </form>
+</div>
 
-    {% if ticket[7] %}
-    <p>дата закрыти: {{ ticket[14].strftime('%d.%m.%Y %H:%M') }} <p>
-    {% endif %}
+{% if tickets and tickets|length > 0 %}
+    {% for ticket in tickets %}
+    <div class="card ticket-card">
+        <div class="card-header">
+            <a href="/ticketditails/{{ ticket[0] }}">Заявка № {{ ticket[0] }}</a>
+            <span class="float-right">
+                {% if ticket[9] %}
+                    <span class="status-badge in-work">⚡ В работе</span>
+                {% elif ticket[7] %}
+                    <span class="status-badge closed">✅ Закрыта</span>
+                {% else %}
+                    <span class="status-badge new">🆕 Новая</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <p class="mb-1"><small class="text-muted">Пользователь</small></p>
+                    <p><strong>{{ ticket[1] or ticket[2] }}</strong></p>
+                </div>
+                <div class="col-md-5">
+                    <p class="mb-1"><small class="text-muted">Описание проблемы</small></p>
+                    <p class="text-truncate" style="max-width: 100%;">{{ ticket[4] }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-1"><small class="text-muted">Дата создания</small></p>
+                    <p><strong>{{ ticket[13].strftime('%d.%m.%Y %H:%M') }}</strong></p>
+                    {% if ticket[7] %}
+                    <p class="mt-2"><small class="text-muted">Закрыта: {{ ticket[14].strftime('%d.%m.%Y %H:%M') }}</small></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-      <p><b>Пользователь:</b> {{ ticket[1] }}</p>
-      <p><b>Что случилось:</b> {{ ticket[4] }}</p>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info text-center">
+        <h4>📭 Заявок не найдено</h4>
+        <p>На данный момент нет заявок по выбранным критериям</p>
     </div>
-  </div>
-  {% endfor %}
+{% endif %}
+
 {% endblock %}

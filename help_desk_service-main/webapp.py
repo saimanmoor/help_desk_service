@@ -99,14 +99,31 @@ def tickeditails(ticket_id):
     
     ticket = db_working.get_ticket(ticket_id)
    
-    img_path = ticket[0][15]
+    img_path = ticket[0][15] if len(ticket) > 0 and len(ticket[0]) > 15 else None
+    
+    # Получаем сообщения для чата заявки
+    messages = db_working.get_ticket_messages(ticket_id)
+    
     form = request.form
     
     if request.method == "POST":
         ticket_close = False
         employee_id = current_user.id
-        ticket_response = form['ticket_response']
-        ticket_note = form['ticket_note']
+        ticket_response = form.get('ticket_response', '')
+        ticket_note = form.get('ticket_note', '')
+        
+        # Проверяем, есть ли новое сообщение в чате
+        chat_message = form.get('chat_message', '')
+        
+        if chat_message.strip():
+            # Добавляем сообщение в чат от поддержки
+            db_working.add_ticket_message(
+                ticketId=ticket_id,
+                senderType='support',
+                messageText=chat_message,
+                senderName=f"{current_user.firstname} {current_user.lastname}"
+            )
+        
         if form.get('is_done') == 'on':
             ticket_close = True
         
@@ -124,7 +141,7 @@ def tickeditails(ticket_id):
         tickets = db_working.get_tickets(ticketTypeName=type_ticket, isDone=is_done)  
         return render_template('dashboard.html', types_ticket = types_ticket, selected_val = type_ticket, tickets = tickets)
     else:        
-        return render_template('ticketditails.html', ticket = ticket, form = form, img_path = img_path)
+        return render_template('ticketditails.html', ticket = ticket, form = form, img_path = img_path, messages=messages)
    
 
 @app.route('/logout')
@@ -141,6 +158,26 @@ def get_ticket_work(ticket_id):
     if request.method == "POST":
         employee_id = current_user.id
         is_work = True
+        
+        # Получаем информацию о заявке для отправки уведомления
+        ticket = db_working.get_ticket(ticket_id)
+        if ticket and len(ticket) > 0:
+            telegram_chatid = ticket[0][4] if len(ticket[0]) > 4 else None  # telegram_chatid в позиции 4
+            max_message_id = ticket[0][16] if len(ticket[0]) > 16 else None  # max_message_id
+            
+            # Сохраняем сообщение о том, что заявка взята в работу
+            support_name = f"{current_user.firstname} {current_user.lastname}"
+            message_text = f"Ваша заявка №{ticket_id} принята в работу. Специалист: {support_name}"
+            
+            db_working.add_ticket_message(
+                ticketId=ticket_id,
+                senderType='support',
+                messageText=message_text,
+                senderName=support_name,
+                maxMessageId=max_message_id,
+                telegramChatid=telegram_chatid
+            )
+        
         db_working.ticket_in_work(ticketId=ticket_id,
                                       employeeId=employee_id,
                                       isWork=is_work)
