@@ -2,87 +2,215 @@
 
 {% block content %}
 
-<h3>Информация о заявке {{ ticket[0][0] }}</h3>
-   
+<style>
+    .ticket-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px 10px 0 0;
+    }
+    .ticket-card {
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        border-radius: 10px;
+    }
+    .chat-container {
+        max-height: 400px;
+        overflow-y: auto;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        margin-bottom: 15px;
+    }
+    .chat-message {
+        margin-bottom: 15px;
+        padding: 10px 15px;
+        border-radius: 15px;
+        max-width: 80%;
+    }
+    .chat-message.user {
+        background: #e3f2fd;
+        margin-left: auto;
+        border-bottom-right-radius: 5px;
+    }
+    .chat-message.support {
+        background: #fff;
+        border: 1px solid #ddd;
+        margin-right: auto;
+        border-bottom-left-radius: 5px;
+    }
+    .chat-message .sender {
+        font-weight: bold;
+        font-size: 0.85em;
+        color: #666;
+        margin-bottom: 5px;
+    }
+    .chat-message .time {
+        font-size: 0.75em;
+        color: #999;
+        text-align: right;
+        margin-top: 5px;
+    }
+    .work-status {
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: bold;
+        display: inline-block;
+        margin-bottom: 15px;
+    }
+    .work-status.in-work {
+        background: #d4edda;
+        color: #155724;
+    }
+    .work-status.not-in-work {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    .btn-work {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 10px 25px;
+        border-radius: 25px;
+        color: white;
+        font-weight: bold;
+    }
+    .btn-work:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    .btn-save {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        border: none;
+        padding: 10px 25px;
+        border-radius: 25px;
+        color: white;
+        font-weight: bold;
+    }
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
+    }
+    .form-control-custom {
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        padding: 12px;
+    }
+    .ticket-info-label {
+        font-weight: bold;
+        color: #555;
+    }
+</style>
+
+<h3 class="mb-4">Заявка № {{ ticket[0][0] }}</h3>
+
 {% if ticket[0][12] %}
-<div class="alert alert-primary" role="alert">В работе</div>
+<div class="work-status in-work">✓ В работе</div>
 {% else %}
-<form action="/work/{{ticket[0][0]}}" method="POST">
-  <button type="submit" class="btn btn-primary">В работу</button>
+<form action="/work/{{ticket[0][0]}}" method="POST" style="display: inline;">
+    <button type="submit" class="btn btn-work">⚡ Взять в работу</button>
 </form>
 {% endif %}
 
-    <div class="card">
-    <div class="card-header">
-
-    Заявка № {{ ticket[0][0] }} от {{ ticket[0][13].strftime('%d.%m.%Y %H:%M') }}
-    {% if ticket[0][7] %}
-    заявка закрыта: {{ ticket[0][14].strftime('%d.%m.%Y %H:%M') }}
-    {% endif %}
-
+<div class="card ticket-card">
+    <div class="ticket-header">
+        <h5 class="mb-1">Заявка № {{ ticket[0][0] }}</h5>
+        <small>Создана: {{ ticket[0][13].strftime('%d.%m.%Y %H:%M') }}</small>
+        {% if ticket[0][7] %}
+        <br><small>Закрыта: {{ ticket[0][14].strftime('%d.%m.%Y %H:%M') }}</small>
+        {% endif %}
     </div>
     <div class="card-body">
-      <p><b>Пользователь:</b> {{ ticket[0][1] }}</p>
-      <p><b>Что случилось:</b> {{ ticket[0][4] }}</p>
-      <p><b>Тип заявки:</b> {{ ticket[0][3] }}</p>
-      {% if ticket[0][9] %}
-      <p><b>Кто закрыл:</b>{{ ticket[0][9] }} {{ ticket[0][10] }}</p>
-      <p><b>Должность:</b>{{  ticket[0][11] }}</p>
-      {% endif %}
+        <p><span class="ticket-info-label">Пользователь:</span> {{ ticket[0][1] }}</p>
+        <p><span class="ticket-info-label">Описание проблемы:</span> {{ ticket[0][4] }}</p>
+        <p><span class="ticket-info-label">Тип заявки:</span> <span class="badge badge-primary">{{ ticket[0][3] }}</span></p>
+        {% if ticket[0][9] %}
+        <hr>
+        <p><span class="ticket-info-label">Исполнитель:</span> {{ ticket[0][9] }} {{ ticket[0][10] }}</p>
+        <p><span class="ticket-info-label">Должность:</span> {{ ticket[0][11] }}</p>
+        {% endif %}
     </div>
-  </div>
+</div>
 
-  <div class="card">
-    <div class="card-header">
-      <strong>Вложения:</strong>
+<div class="card ticket-card">
+    <div class="card-header bg-light">
+        <strong>📎 Вложения:</strong>
     </div>
     <div class="card-body">
         {% if img_path %}
-        <a href="{{url_for('static', filename='img/' +  img_path)}}" target="_blank">{{ img_path }}</a>
-        {% endif %}
-    </div>
-  </div>
- 
-  <form action='/ticketditails/{{ticket[0][0]}}' method="POST">
-  <div class="card">
-    <div class="card-header">
-      <strong>Ответ на завку:</strong>
-    </div>
-    <div class="card-body">
-        {% if ticket[0][5] == None %}
-        <textarea rows='5' cols='76' class="card-text" name="ticket_response"></textarea>
+        <a href="{{url_for('static', filename='img/' + img_path)}}" target="_blank" class="btn btn-outline-primary btn-sm">
+            🖼️ Просмотреть изображение: {{ img_path }}
+        </a>
         {% else %}
-        <textarea rows='5' cols='76' class="card-text" name="ticket_response">{{ ticket[0][5] }}</textarea>
+        <span class="text-muted">Нет вложений</span>
         {% endif %}
     </div>
-  </div>
+</div>
 
-  <div class="card">
-    <div class="card-header">
-        <strong>Примечание:</strong>
+<!-- Чат по заявке -->
+<div class="card ticket-card">
+    <div class="card-header bg-light">
+        <strong>💬 Переписка по заявке</strong>
     </div>
     <div class="card-body">
-        {% if ticket[0][5] == None %}
-        <textarea rows='5' cols='76' class="card-text" name="ticket_note"></textarea>
-        {% else %}
-        <textarea rows='5' cols='76' class="card-text" name="ticket_note">{{ ticket[0][6] }}</textarea>
-        {% endif %}
+        <div class="chat-container">
+            {% if messages and messages|length > 0 %}
+                {% for msg in messages %}
+                <div class="chat-message {{ msg[1] }}">
+                    <div class="sender">
+                        {% if msg[1] == 'user' %}👤 Пользователь{% else %}🛠️ {{ msg[2] or 'Поддержка' }}{% endif %}
+                    </div>
+                    <div>{{ msg[3] }}</div>
+                    <div class="time">{{ msg[4].strftime('%d.%m.%Y %H:%M') }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted text-center">Сообщений пока нет</p>
+            {% endif %}
+        </div>
+        
+        <form action='/ticketditails/{{ticket[0][0]}}' method="POST">
+            <div class="form-group">
+                <label for="chat_message"><strong>Отправить сообщение пользователю:</strong></label>
+                <textarea rows="3" class="form-control form-control-custom" name="chat_message" id="chat_message" placeholder="Введите сообщение..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-work">📨 Отправить</button>
+        </form>
     </div>
-  </div>
+</div>
 
-  <div class="card">
-    <div class="card-header">
-        <strong>Закрыть заявку:</strong>
-    </div>
-    <div class="card-body">
-        <div class='form-group'>
-          <input type='checkbox' class="form-control" name='is_done' {% if ticket[0][7] %}checked{% endif %} />
+<form action='/ticketditails/{{ticket[0][0]}}' method="POST">
+    <div class="card ticket-card">
+        <div class="card-header bg-light">
+            <strong>📝 Ответ на заявку:</strong>
+        </div>
+        <div class="card-body">
+            <textarea rows="5" class="form-control form-control-custom" name="ticket_response" placeholder="Введите официальный ответ...">{% if ticket[0][5] %}{{ ticket[0][5] }}{% endif %}</textarea>
         </div>
     </div>
-  </div>
-      <button type="submit" class="btn btn-primary">Сохранить</button>
-    </form>
 
+    <div class="card ticket-card">
+        <div class="card-header bg-light">
+            <strong>📌 Примечание (внутреннее):</strong>
+        </div>
+        <div class="card-body">
+            <textarea rows="5" class="form-control form-control-custom" name="ticket_note" placeholder="Внутренняя заметка...">{% if ticket[0][6] %}{{ ticket[0][6] }}{% endif %}</textarea>
+        </div>
+    </div>
 
+    <div class="card ticket-card">
+        <div class="card-header bg-light">
+            <strong>✅ Закрыть заявку:</strong>
+        </div>
+        <div class="card-body">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" name="is_done" id="is_done" {% if ticket[0][7] %}checked{% endif %} />
+                <label class="form-check-label" for="is_done">Заявка выполнена и закрыта</label>
+            </div>
+        </div>
+    </div>
+    
+    <button type="submit" class="btn btn-save mb-4">💾 Сохранить изменения</button>
+</form>
 
 {% endblock %}

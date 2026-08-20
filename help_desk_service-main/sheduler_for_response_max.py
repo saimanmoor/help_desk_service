@@ -54,6 +54,39 @@ def getDataAndSendMessage():
         print(f'[MAX] Error: {e}')
 
 
+def sendUnsentMessages():
+    """Send unsent messages from ticket conversation to MAX messenger."""
+    try:
+        messages = db_working.get_unsent_messages_for_max()
+
+        for msg in messages:
+            messageId = msg[0]
+            ticketId = msg[1]
+            chatId = msg[2]
+            messageText = msg[3]
+            originalMaxMessageId = msg[4]  # max_message_id из сообщения (ссылка на оригинал)
+            senderType = msg[5]
+
+            if not messageText.strip():
+                db_working.mark_message_sent(messageId)
+                continue
+
+            # Получаем оригинальный max_message_id из заявки для ответа
+            originalMid = db_working.get_original_message_for_ticket(ticketId)
+
+            response = sendMaxMessage(chatId, messageText, replyToMid=originalMid)
+
+            if response.status_code == 200:
+                db_working.mark_message_sent(messageId)
+                print(f'[MAX MSG] Message {messageId} from ticket {ticketId} sent to chat {chatId}')
+            else:
+                print(f'[MAX MSG] Failed to send message {messageId}: {response.status_code} {response.text}')
+
+    except Exception as e:
+        print(f'[MAX MSG] Error: {e}')
+
+
 while True:
     time.sleep(5)
     getDataAndSendMessage()
+    sendUnsentMessages()
